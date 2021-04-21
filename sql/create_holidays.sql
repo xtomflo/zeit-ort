@@ -1,10 +1,12 @@
 CREATE TABLE IF NOT EXISTS holidays (
 	name TEXT,
-	country_id TEXT,
+	country_id VARCHAR(2),
 	country_name TEXT,
-	date_iso INTEGER,
+	date_iso DATETIME,
+	locations TEXT,
+	states TEXT,
 	type_0 TEXT,
-	locations TEXT
+	type_1 TEXT
 );
 
 CREATE INDEX IF NOT EXISTS i_date_iso
