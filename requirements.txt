@@ -1,0 +1,4 @@
+requests
+prefect
+jq
+pandas
