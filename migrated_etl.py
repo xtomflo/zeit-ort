@@ -1,14 +1,22 @@
 #--------------------------------------------------------------
 # Imports
 #--------------------------------------------------------------
-from prefect import task, Flow, Task, context
-from prefect.tasks.shell import ShellTask
-from prefect.schedules import IntervalSchedule
 import config
-import requests
 import json
-import jq
+import requests
+
+import great_expectations as ge
+import os.path
 import pandas as pd
+
+from prefect import Flow
+from prefect import Parameter
+from prefect import Task
+from prefect import context
+from prefect import task
+from prefect.schedules import IntervalSchedule
+from prefect.tasks.great_expectations import RunGreatExpectationsValidation
+from prefect.tasks.shell import ShellTask
 
 countries_url = 'https://calendarific.com/api/v2/countries'
 holidays_url = 'https://calendarific.com/api/v2/holidays'
@@ -19,10 +27,15 @@ countries_params = {
 	'api_key': config.CALENDARIFIC_KEY
 }
 
+
 holidays_params = countries_params
 holidays_params['year'] = 2021
 holidays_params['country'] = 'DE'
 holidays_params['type'] = 'national,local'
+
+# Define checkpoint task
+validation_task = RunGreatExpectationsValidation()
+
 
 def get_from_json_api(url,params):
 	response = requests.get(url,params)
@@ -34,9 +47,9 @@ def get_from_json_api(url,params):
 #--------------------------------------------------------------
 @task
 def get_schema(sql_file):
-    with open(sql_file) as f:
-        schema = f.read()
-    return schema
+	with open(sql_file) as f:
+		schema = f.read()
+	return schema
 
 @task 
 def get_countries():
@@ -64,41 +77,15 @@ def get_holidays_for_country(country_list):
 	holiday_list = []
 	big_list = ''
 
-	#holidays_params['country'] = 'DE'  
-
-
 	for country in country_list:
 		holidays_params['country'] = country
 		holidays_json = get_from_json_api(holidays_url,holidays_params)
-		holiday_list = holiday_list + list(jq.iter('.response.holidays[] | [paths(scalars) as $path | {"key": $path | join("_"), "value": getpath($path)}] | from_entries',holidays_json))
+		#holiday_list = holiday_list + list(jq.iter('.response.holidays[] | [paths(scalars) as $path | {"key": $path | join("_"), "value": getpath($path)}] | from_entries',holidays_json))
 
 
-	'''
-	 
-		print(f' Pulling holidays for: {country}')
-		df = pd.json_normalize(holidays_json)
-		print(df)
-		# Flattening the returned json completely
-		holidays_list = jq.compile('.response.holidays[] | [paths(scalars) as $path | {"key": $path | join("_"), "value": getpath($path)}] | from_entries').input(holidays_json).text()
-		print(holidays_list)
-
-		big_list += holidays_list
-
-	
-	new_list = big_list.replace('\n',',\n')
-
-	f = open('holidaytext.json','w')
-	f.write(new_list)
-	f.close()
-
-	#pdb.set_trace()
-	df = pd.read_json(new_list, lines=True)
-	#df = pd.DataFrame(eval(new_list))
-	df.to_json("holidays.json")
-	'''
 	return holiday_list
 
-
+# Task for picking the relevant columns from json and converting it to csv
 @task
 def transform_holidays(holiday_list):
 	
@@ -113,6 +100,11 @@ def transform_holidays(holiday_list):
 
 	return df
 
+# Task for retrieving batch kwargs including csv dataset
+@task
+def get_batch_kwargs(datasource_name, dataset):
+    dataset = ge.read_csv(dataset)
+    return {"dataset": dataset, "datasource": datasource_name}
 
 #--------------------------------------------------------------
 # Instantiate task classes
@@ -126,19 +118,33 @@ def main():
 
 	with Flow("ETL") as flow:
 		
-		#transform_holidays.set_upstream(get_holidays_for_country)
 
 		#postgres_connect = run_in_bash(command = 'psql -U tomek -h soobrosa-1789.postgres.pythonanywhere-services.com -p 11789 -d postgres')
-		countries_json = get_countries()
+		
+		if (os.path.exists('data/holiday_no_work.csv') is False):
+			print("hello")
+			countries_json = get_countries()
+			country_list = transform_countries(countries_json)
+			holidays_list = get_holidays_for_country(country_list)
+			holidays = transform_holidays(holidays_list)
 
-		country_list = transform_countries(countries_json)
+		datasource_name = Parameter("datasource_name")
+		dataset = Parameter("dataset")
+		batch_kwargs = get_batch_kwargs(datasource_name, dataset)
 
-		holidays_list = get_holidays_for_country(country_list)
+		expectation_suite_name = Parameter("expectation_suite_name")
+		validation_task(
+			batch_kwargs=batch_kwargs,
+			expectation_suite_name=expectation_suite_name,
+	    )
 
-		holidays = transform_holidays(holidays_list)
 
-
-	flow.run()
+	flow.run(
+    parameters={
+		"datasource_name": "data__dir",
+		"dataset": "data/holiday_no_work.csv",
+		"expectation_suite_name": "holiday_no_work.warning",
+    },)
 
 if __name__ == "__main__":
 	main()
