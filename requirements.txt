@@ -1,4 +1,0 @@
-requests
-prefect
-jq
-pandas
