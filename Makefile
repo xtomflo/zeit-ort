@@ -2,7 +2,7 @@
 SHELL := bash
 
 .PHONY: create_holidays_table create_holiday_regions_table create_opencell_table
-all:    jq json2csv load_holidays load_holiday_regions 
+all:    .jq .json2csv load_holidays load_holiday_regions load_ip_locations
 
 # Ensure JQ is installed
 .jq:
@@ -34,40 +34,49 @@ holidays.json: countries.txt
 	done ; \
 # Transform holidays and add index
 holidaysT.json: holidays.json
-	cat holidays.json  | ./jq '.response.holidays[] ' -c | ./jq '-s' |  ./jq 'def add_id(prefix): ( foreach .[] as $$o (0; . + 1; {"id": (prefix + tostring) } + $$o) ); add_id("")' > $@
-
+	cat holidays.json  | ./.jq '.response.holidays[] ' -c | ./.jq '-s' |  ./.jq 'def add_id(prefix): ( foreach .[] as $$o (0; . + 1; {"id": (prefix + tostring) } + $$o) ); add_id("")' > $@
 
 # Flatten the holidays json and take needed elements, keep elements in { } for keys to remain
-holidays.csv: holidaysT.json
-	cat holidaysT.json | ./jq '[paths(scalars) as $$path | {"key": $$path | join("_"), "value": getpath($$path)}] | from_entries | { id, name, country_id, country_name, date_iso, states }' -c | ./json2csv -p=true -k id,name,country_id,country_name,date_iso,states > $@
+data/holidays.csv: holidaysT.json
+	cat holidaysT.json | ./.jq '[paths(scalars) as $$path | {"key": $$path | join("_"), "value": getpath($$path)}] | from_entries | { id, name, country_id, country_name, date_iso, states }' -c | ./.json2csv -p=true -k id,name,country_id,country_name,date_iso,states > $@
 
 # Holiday ID and region code as separate table for holidays affecting only specific regions within a country
-holidayRegions.csv: holidaysT.json
-	cat holidaysT.json | ./jq 'select(.states != "All") | { id, "states": .states[].iso}' -c | ./json2csv -p=true -k id,states > $@	
+data/holidayRegions.csv: holidaysT.json
+	cat holidaysT.json | ./.jq 'select(.states != "All") | { id, "states": .states[].iso}' -c | ./.json2csv -p=true -k id,states > $@	
 
 # Download OpenCellData
 data/cell_towers.csv.gz:
 	curl -O "https://opencellid.org/ocid/downloads?token=pk.3278cbbd75e56f5bec70803a2f4910fd&type=full&file=cell_towers.csv.gz" > $@
 
+# Transform IP Ranges 
+data/ip_geoname.csv:
+	python3 python/ip-transform.py
+# Generate IP to Location tables
+data/ip_location.csv: data/ip_geoname.csv
+	python3 python/geo_location.py
+
 # Creating Tables 
 create_holidays_table: holidays.csv
-	sqlite3 holidays.sqlite < sql/create_holidays.sql 
+	sqlite3 db.sqlite < sql/create_holidays.sql 
 create_holiday_regions_table: holidayRegions.csv
-	sqlite3 holiday_regions.sqlite < sql/create_holiday_regions.sql 
+	sqlite3 db.sqlite < sql/create_holiday_regions.sql 
 create_opencell_table: data/cell_towers.csv.gz
-	 sqlite3 opencell.sqlite < sql/opencell.sql
+	sqlite3 db.sqlite < sql/opencell.sql
+create_ip_locations_table: data/ip_location.csv
+	sqlite3 db.sqlite < sql/ip_locations.sql
 
 # Loading Data into Tables
 load_opencell: create_opencell_table
 	echo "Loading OpenCell"
-	sqlite3  db.sqlite -cmd ".mode csv" ".import ../cell_towers.csv/cell_towers.csv opencell"
+	sqlite3 db.sqlite -cmd ".mode csv" ".import ../cell_towers.csv/cell_towers.csv opencell"
 load_holidays: create_holidays_table holidays.csv
 	echo "Loading holidays"
 	sqlite3 db.sqlite -cmd ".mode csv" ".import holidays.csv holidays"
 	echo "Loading holiday regions"
 load_holiday_regions: create_holiday_regions_table
 	sqlite3 db.sqlite -cmd ".mode csv" ".import holidayRegions.csv holiday_regions"
-
+load_ip_locations: create_ip_locations_table
+	sqlite3 db.sqlite -cmd ".mode csv" ".import data/ip_location.csv ip_locations"
 
 nuke:
 	rm *.txt

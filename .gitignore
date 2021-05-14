@@ -1,3 +1,14 @@
+# Database files
+*.db
+*.sqlite
+
+# CSVs
+*.csv
+
+# Bash tools
+.jq
+.json2csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
