@@ -21,27 +21,27 @@ all:    .jq .json2csv load_holidays load_holiday_regions load_ip_locations
 	touch $@
 
 # Get the list of countries in json
-countries.json:
-	curl "https://calendarific.com/api/v2/countries?api_key=c7f7787d4c0e5365332fae488a3a94af15e856ca" > $@    
+data/countries.json:
+	curl "https://calendarific.com/api/v2/countries?api_key=c7f7787d4c0e5365332fae488a3a94af15e856ca" > $@
 
 # Convert the json with countries into an iterable list
-countries.txt: countries.json
+data/countries.txt: data/countries.json
 	cat countries.json | ./.jq '.response.countries[] | ."iso-3166"' -c | tr -d \" > $@
 # Using the iterable list of countries get all holidays per country
-holidays.json: countries.txt
+data/holidays.json: data/countries.txt
 	cat countries.txt | while read line ; do \
 	curl "https://calendarific.com/api/v2/holidays?api_key=c7f7787d4c0e5365332fae488a3a94af15e856ca&country=$$line&type=national,local&year=2021" >> $@ ; \
 	done ; \
 # Transform holidays and add index
-holidaysT.json: holidays.json
+data/holidaysT.json: data/holidays.json
 	cat holidays.json  | ./.jq '.response.holidays[] ' -c | ./.jq '-s' |  ./.jq 'def add_id(prefix): ( foreach .[] as $$o (0; . + 1; {"id": (prefix + tostring) } + $$o) ); add_id("")' > $@
 
 # Flatten the holidays json and take needed elements, keep elements in { } for keys to remain
-data/holidays.csv: holidaysT.json
+data/holidays.csv: data/holidaysT.json
 	cat holidaysT.json | ./.jq '[paths(scalars) as $$path | {"key": $$path | join("_"), "value": getpath($$path)}] | from_entries | { id, name, country_id, country_name, date_iso, states }' -c | ./.json2csv -p=true -k id,name,country_id,country_name,date_iso,states > $@
 
 # Holiday ID and region code as separate table for holidays affecting only specific regions within a country
-data/holidayRegions.csv: holidaysT.json
+data/holidayRegions.csv: data/holidaysT.json
 	cat holidaysT.json | ./.jq 'select(.states != "All") | { id, "states": .states[].iso}' -c | ./.json2csv -p=true -k id,states > $@	
 
 # Download OpenCellData
@@ -56,20 +56,20 @@ data/ip_location.csv: data/ip_geoname.csv
 	python3 python/geo_location.py
 
 # Creating Tables 
-create_holidays_table: holidays.csv
+create_holidays_table: data/holidays.csv
 	sqlite3 db.sqlite < sql/create_holidays.sql 
-create_holiday_regions_table: holidayRegions.csv
+create_holiday_regions_table: data/holidayRegions.csv
 	sqlite3 db.sqlite < sql/create_holiday_regions.sql 
-create_opencell_table: data/cell_towers.csv.gz
+create_opencell_table: data/data/cell_towers.csv.gz
 	sqlite3 db.sqlite < sql/opencell.sql
-create_ip_locations_table: data/ip_location.csv
+create_ip_locations_table: data/data/ip_location.csv
 	sqlite3 db.sqlite < sql/ip_locations.sql
 
 # Loading Data into Tables
 load_opencell: create_opencell_table
 	echo "Loading OpenCell"
 	sqlite3 db.sqlite -cmd ".mode csv" ".import ../cell_towers.csv/cell_towers.csv opencell"
-load_holidays: create_holidays_table holidays.csv
+load_holidays: create_holidays_table data/holidays.csv
 	echo "Loading holidays"
 	sqlite3 db.sqlite -cmd ".mode csv" ".import holidays.csv holidays"
 	echo "Loading holiday regions"
