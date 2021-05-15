@@ -9,6 +9,8 @@ data/
 .jq
 .json2csv
 
+# Secrets
+secrets.mk
 
 
 # Byte-compiled / optimized / DLL files
