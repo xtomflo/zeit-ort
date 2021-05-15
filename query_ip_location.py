@@ -29,7 +29,7 @@ def get_location_for_ip(conn, ip_address):
     """
     cur = conn.cursor()
     cur.execute("SELECT country_iso_code, subdivision_1_iso_code, subdivision_1_name, city_name \
-     FROM ip_locations_ip_index WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_address,))
+     FROM ip_locations WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_address,))
 
     rows = cur.fetchall()
 
@@ -37,7 +37,7 @@ def get_location_for_ip(conn, ip_address):
         print(row)
 
 def main():
-    database = "db.sqlite"
+    database = "zeit-ort.db"
     # Get the IP address from input
     ip_addr = ip_address(sys.argv[1])
     # Convert IP address to INT
