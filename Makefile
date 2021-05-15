@@ -11,17 +11,17 @@ all:    .jq .json2csv load_holidays load_holiday_regions load_ip_locations
 # Ensure JQ is installed
 .jq:
 	wget https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
-	mv jq-linux64 jq
-	chmod 777 jq
+	mv jq-linux64 .jq
+	chmod 777 .jq
 	touch $@
 # Ensure json2csv is installed
 .json2csv:
 	wget https://github.com/jehiah/json2csv/releases/download/v1.2.1/json2csv-1.2.1.linux-amd64.go1.13.5.tar.gz
 	tar -xzf json2csv-1.2.1.linux-amd64.go1.13.5.tar.gz 
 	rm json2csv-1.2.1.linux-amd64.go1.13.5.tar.gz
-	mv json2csv-1.2.1.linux-amd64.go1.13.5/json2csv .
+	mv json2csv-1.2.1.linux-amd64.go1.13.5/json2csv .json2csv
 	rmdir json2csv-1.2.1.linux-amd64.go1.13.5
-	chmod 777 json2csv
+	chmod 777 .json2csv
 	touch $@
 
 # Holidays Data
@@ -62,15 +62,15 @@ data/cell_towers.csv.gz:
 # Get IP to Location Data
 data/GeoLite.zip:
 	wget -O data/GeoLite.zip "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City-CSV&license_key=$(GEOLITE_KEY)&suffix=zip"
-
+	unzip data/GeoLite.zip -d data/
 
 # Transform IP Ranges 
-data/ip_geoname.csv:
-	cp data/GeoLite2-City*/GeoLite2-City-Blocks-IPv4.csv data/GeoLite/
+data/ip_geoname.csv: data/GeoLite.zip
+	cp data/GeoLite2-City*/GeoLite2-City-Blocks-IPv4.csv data/
 	python3 python/ip-transform.py
 # Generate IP to Location tables
 data/ip_location.csv: data/ip_geoname.csv
-	cp data/GeoLite2-City*/GeoLite2-City-Locations-en.csv data/GeoLite/
+	cp data/GeoLite2-City*/GeoLite2-City-Locations-en.csv data/
 	python3 python/geo_location.py
 
 # Database & Loading

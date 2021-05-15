@@ -10,7 +10,7 @@ def ipnet_to_range(ip_net):
 	return ip_range_start, ip_range_end
 
 # Load the raw CSV file
-ip_geoname = pd.read_csv("data/GeoLite/GeoLite2-City-Blocks-IPv4.csv")
+ip_geoname = pd.read_csv("data/GeoLite2-City-Blocks-IPv4.csv")
 
 # Apply the function to all IP ranges
 ip_geoname[['ip_range_start','ip_range_end']] = ip_geoname.filter(like='network').apply(lambda x: ipnet_to_range(x), axis=1, result_type="expand")
