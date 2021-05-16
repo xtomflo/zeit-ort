@@ -24,16 +24,17 @@ all:    .jq .json2csv load_holidays load_holiday_regions load_ip_locations
 	chmod 777 .json2csv
 	touch $@
 
+# Create data folder if it doesn't exist
+data: 
+	mkdir data
 # Holidays Data
 # ---------------------------------------------------------------
 # Get the list of countries in json
 data/countries.json:
 	curl "https://calendarific.com/api/v2/countries?api_key=$(CALENDARIFIC_KEY)" > $@
-
 # Convert the json with countries into an iterable list
 data/countries.txt: data/countries.json
 	cat data/countries.json | ./.jq '.response.countries[] | ."iso-3166"' -c | tr -d \" > $@
-
 # Using the iterable list of countries get all holidays per country
 data/holidays.json: data/countries.txt
 	cat data/countries.txt | while read line ; do \
@@ -42,7 +43,6 @@ data/holidays.json: data/countries.txt
 # Transform holidays and add index
 data/holidaysT.json: data/holidays.json
 	cat data/holidays.json  | ./.jq '.response.holidays[] ' -c | ./.jq '-s' |  ./.jq 'def add_id(prefix): ( foreach .[] as $$o (0; . + 1; {"id": (prefix + tostring) } + $$o) ); add_id("")' > $@
-
 # Flatten the holidays json and take needed elements, keep elements in { } for keys to remain
 data/holidays.csv: data/holidaysT.json
 	cat data/holidaysT.json | ./.jq '[paths(scalars) as $$path | {"key": $$path | join("_"), "value": getpath($$path)}] | from_entries | { id, name, country_id, country_name, date_iso, states }' -c | ./.json2csv -p=true -k id,name,country_id,country_name,date_iso,states > $@
@@ -67,11 +67,11 @@ data/GeoLite.zip:
 # Transform IP Ranges 
 data/ip_geoname.csv: data/GeoLite.zip
 	cp data/GeoLite2-City*/GeoLite2-City-Blocks-IPv4.csv data/
-	python3 python/ip-transform.py
+	python3 python/ip-transform.py 
 # Generate IP to Location tables
 data/ip_location.csv: data/ip_geoname.csv
 	cp data/GeoLite2-City*/GeoLite2-City-Locations-en.csv data/
-	python3 python/geo_location.py
+	python3 python/geo_location.py 
 
 # Database & Loading
 # ---------------------------------------------------------------
