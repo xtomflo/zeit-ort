@@ -1,3 +1,4 @@
 python3
 sqlite3
 make
+python3-venv
