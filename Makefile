@@ -56,10 +56,13 @@ data/holidayRegions.csv: data/holidaysT.json
 # Download OpenCellData
 data/cell_towers.csv.gz:
 	wget -O data/cell_towers.csv.gz "https://opencellid.org/ocid/downloads?token=$(OPENCELL_KEY)&type=full&file=cell_towers.csv.gz" > $@
+# Extract the CSV file
+data/cell_towers.csv: data/cell_towers.csv.gz
+
 
 # IP to Location Data
 # ---------------------------------------------------------------
-# Get IP to Location Data
+# Get IP to Location Data  -- Why does it run even though the file exist?  @Daniel
 data/GeoLite.zip:
 	wget -O data/GeoLite.zip "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City-CSV&license_key=$(GEOLITE_KEY)&suffix=zip"
 	unzip data/GeoLite.zip -d data/
@@ -84,7 +87,7 @@ create_holidays_table: zeit-ort.db data/holidays.csv
 	sqlite3 zeit-ort.db < sql/create_holidays.sql 
 create_holiday_regions_table: zeit-ort.db data/holidayRegions.csv
 	sqlite3 zeit-ort.db < sql/create_holiday_regions.sql 
-create_opencell_table: zeit-ort.db data/cell_towers.csv.gz
+create_opencell_table: zeit-ort.db data/cell_towers.csv
 	sqlite3 zeit-ort.db < sql/opencell.sql
 create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	sqlite3 zeit-ort.db < sql/ip_locations.sql
