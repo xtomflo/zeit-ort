@@ -5,6 +5,8 @@ data/
 # CSVs
 *.csv
 
+# Logs
+logs/
 # Bash tools
 .jq
 .json2csv
