@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from ipaddress import ip_address
 import json
 import sqlite3
+import git
+
 
 app = Flask(__name__)
 
@@ -44,11 +46,30 @@ def get_holidays(date):
 def get_json_ip_location(ip_input):
 	json_data = flask.request.json
 
+@app.route('/update_server', methods=['POST'])
+def webhook():
+	# Read request
+    x_hub_signature = request.headers.get('X-Hub-Signature')
+    # Validate key from request
+#    if not is_valid_signature(x_hub_signature, request.data, w_secret):
+#        print('Deploy signature failed: {sig}'.format(sig=x_hub_signature))
+#        abort(418)
+    # Check the request method. Other Checks can be added
+    if request.method == 'POST':
+    	# Local location of the repo
+        repo = git.Repo('../zeit-ort')
+        origin = repo.remotes.origin
+        # Pull the repo to be updated
+        origin.pull()
+        return 'Updated zeit-ort App successfully', 200
+    else:
+        return 'Wrong event type', 400
+
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return "<p>Hello, Outer  World!</p>"
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
 # Get Holidays for IP Address

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+service: zeit-ort
 runtime: python
 env: flex
-entrypoint: gunicorn -b :$PORT main:app
+entrypoint: gunicorn -b :$PORT api:app
 
 runtime_config:
   python_version: 3
@@ -29,3 +30,6 @@ resources:
   cpu: 1
   memory_gb: 0.5
   disk_size_gb: 10
+skip_files:
+  data/
+  logs/

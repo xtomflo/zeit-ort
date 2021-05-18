@@ -1,3 +1,5 @@
 ipaddress
 pandas
 Flask
+gunicorn
+python-git
