@@ -42,6 +42,10 @@ def get_ip_location(ip_input):
 def get_holidays(date):
 	something = 0
 
+@app.route("/test")
+def get_test():
+	return "Auto Deployment is working!?"
+
 @app.route("/api/json/ip_location", methods = ["GET"])
 def get_json_ip_location(ip_input):
 	json_data = flask.request.json
