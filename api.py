@@ -44,7 +44,7 @@ def get_holidays(date):
 
 @app.route("/test")
 def get_test():
-	return "Auto Deployment is working!?"
+	return "Auto Deployment is working!? Yes it is! (with Debug mode)"
 
 @app.route("/api/json/ip_location", methods = ["GET"])
 def get_json_ip_location(ip_input):
