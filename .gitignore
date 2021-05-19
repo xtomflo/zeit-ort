@@ -7,10 +7,9 @@ data/
 
 # Logs
 logs/
-# Bash tools
-.jq
-.json2csv
 
+# Makefile helpers & bash tools
+.*
 # Secrets
 secrets.mk
 
