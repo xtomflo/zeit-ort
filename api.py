@@ -52,6 +52,18 @@ def get_holidays():
     if result is not None:
     	return jsonify(result)
 
+@app.route("/api/get_country_holidays/<string:country>", methods = ["GET"])
+def get_country_holidays(country):
+	# Connect to the database
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=?",(country,))
+
+    result = cursor.fetchall()
+
+    if result is not None:
+    	return jsonify(result)
 
 @app.route("/test")
 def get_test():
