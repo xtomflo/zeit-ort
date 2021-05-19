@@ -4,7 +4,7 @@ SHELL := bash
 include secrets.mk
 
 .PHONY: create_holidays_table create_holiday_regions_table create_opencell_table
-all:    .jq .json2csv load_holidays load_holiday_regions load_ip_locations
+all:    .jq .json2csv .load_holidays .load_holiday_regions .load_ip_locations
 
 # TOOLS
 # ---------------------------------------------------------------
@@ -93,21 +93,43 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	sqlite3 zeit-ort.db < sql/ip_locations.sql
 
 # Loading Data into Tables
-load_opencell: create_opencell_table
+.load_opencell: create_opencell_table
 	echo "Loading OpenCell"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import ../cell_towers.csv/cell_towers.csv opencell"
-load_holidays: create_holidays_table 
+	touch $@
+.load_holidays: create_holidays_table 
 	echo "Loading holidays"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/holidays.csv holidays"
-	echo "Loading holiday regions"
-load_holiday_regions: create_holiday_regions_table
+	echo "Loading Holiday"
+	touch $@
+.load_holiday_regions: create_holiday_regions_table
+	echo "Loading Holiday regions"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/holidayRegions.csv holiday_regions"
-load_ip_locations: create_ip_locations_table
+	touch $@
+.load_ip_locations: create_ip_locations_table
+	echo "Loading IP Locations"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/ip_location.csv ip_locations"
+	touch $@
+# Table Transformations
+# Merge and flatten holidays tables for easier querying
+.load_flat_holidays: .load_holiday_regions .load_holidays
+	echo "Flattening holidays table"
+	sqlite3 zeit-ort.db "CREATE TABLE flat_holidays AS SELECT d.id, d.name, d.country_id, d.country_name, d.date_iso,  \
+	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, c.states as region \
+	   FROM holidays d LEFT JOIN holiday_regions c USING(id) UNION ALL \
+	   SELECT d.id, d.name, d.country_id, d.country_name, d.date_iso, \
+	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, c.states as region \
+	   FROM holiday_regions c LEFT JOIN holidays d USING(id) WHERE d.id IS NULL; "
+	touch $@
 
 nuke:
 	rm *.txt
 	rm *.json
 	rm *.csv
-	
+
+drop_holidays:
+	sqlite3 zeit-ort.db "DROP TABLE holidays"
+	sqlite3 zeit-ort.db "DROP TABLE holiday_regions"
+	sqlite3 zeit-ort.db "DROP TABLE flat_holidays"
+	rm .load_holiday_regions .load_holidays .load_flat_holidays
 
