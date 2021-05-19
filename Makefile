@@ -108,17 +108,21 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	touch $@
 .load_ip_locations: create_ip_locations_table
 	echo "Loading IP Locations"
-	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/ip_location.csv ip_locations"
+	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/ip_location.csv ip_location_temp"
+	sqlite3 zeit-ort.db "CREATE TABLE ip_location AS SELECT ip_range_start, ip_range_end, \
+		geoname_id, latitude, longitude,accuracy_radius, country_iso_code as country_iso, \
+		subdivision_1_iso_code as region_iso, subdivision_1_name as region_name, city_name FROM ip_location_temp"
+	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS ip_location_temp"
 	touch $@
 # Table Transformations
-# Merge and flatten holidays tables for easier querying
+# Merge and flatten holidays tables for easier querying.  Using double LEFT JOIN as a workaround for OUTER JOIN not being supported by SQLITE
 .load_flat_holidays: .load_holiday_regions .load_holidays
 	echo "Flattening holidays table"
-	sqlite3 zeit-ort.db "CREATE TABLE flat_holidays AS SELECT d.id, d.name, d.country_id, d.country_name, d.date_iso,  \
-	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, c.states as region \
+	sqlite3 zeit-ort.db "CREATE TABLE flat_holidays AS SELECT d.id, d.name, d.country_id as country_iso, d.country_name, d.date_iso,  \
+	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, lower(c.states) as region_iso \
 	   FROM holidays d LEFT JOIN holiday_regions c USING(id) UNION ALL \
-	   SELECT d.id, d.name, d.country_id, d.country_name, d.date_iso, \
-	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, c.states as region \
+	   SELECT d.id, d.name, d.country_id as country_iso, d.country_name, d.date_iso, \
+	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, lower(c.states) as region_iso \
 	   FROM holiday_regions c LEFT JOIN holidays d USING(id) WHERE d.id IS NULL; "
 	touch $@
 
