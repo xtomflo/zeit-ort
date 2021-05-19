@@ -28,7 +28,7 @@ def get_ip_location(ip_input):
     # Convert IP address to INT
     ip_addr = int(ip_addr)
    	# Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso,region_iso,region_name, city_name \
+    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
     # Read the result
     result = cursor.fetchone()
@@ -76,14 +76,16 @@ def get_ip_holidays(ip_input):
     # Convert IP address to INT
     ip_addr = int(ip_addr)
    	# Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso_code, subdivision_1_iso_code, subdivision_1_name, city_name \
+    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
      FROM ip_locations WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
     # Read the result
     result = cursor.fetchone()
     
     location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
+    print(location)
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso AND (all_states=1 OR states='de-bw')=?",(country,))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=? AND (all_states=1 OR states=?)",(location['country_iso'],location['region_iso']))
+
 
 @app.route("/test")
 def get_test():
@@ -119,4 +121,4 @@ def hello_world():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
-
+# Get Holidays for IP Address
