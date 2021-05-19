@@ -82,8 +82,14 @@ def get_ip_holidays(ip_input):
     result = cursor.fetchone()
     
     location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
+    print(location)
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso AND (all_states=1 OR states='de-bw')=?",(country,))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=? AND (all_states=1 OR states=?)",(location['country_iso'],location['region_iso']))
+
+    result = cursor.fetchall()
+
+    if result is not None:
+    	return jsonify(result)
 
 @app.route("/test")
 def get_test():
