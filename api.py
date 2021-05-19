@@ -84,7 +84,7 @@ def get_ip_holidays(ip_input):
     location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
     print(location)
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=? AND (all_states=1 OR states=?)",(location['country_iso'],location['region_iso']))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=? AND (all_states=1 OR region_iso=?)",(location['country_iso'],location['region_iso']))
 
 
 @app.route("/test")
