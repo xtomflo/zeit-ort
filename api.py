@@ -77,7 +77,7 @@ def get_ip_holidays(ip_input):
     ip_addr = int(ip_addr)
    	# Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_locations WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
     # Read the result
     result = cursor.fetchone()
     
