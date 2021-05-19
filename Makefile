@@ -128,8 +128,8 @@ nuke:
 	rm *.csv
 
 drop_holidays:
-	sqlite3 zeit-ort.db "DROP TABLE holidays"
-	sqlite3 zeit-ort.db "DROP TABLE holiday_regions"
-	sqlite3 zeit-ort.db "DROP TABLE flat_holidays"
+	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS holidays"
+	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS holiday_regions"
+	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS flat_holidays"
 	rm .load_holiday_regions .load_holidays .load_flat_holidays
 
