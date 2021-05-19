@@ -110,8 +110,8 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	echo "Loading IP Locations"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/ip_location.csv ip_location_temp"
 	sqlite3 zeit-ort.db "CREATE TABLE ip_location AS SELECT ip_range_start, ip_range_end, \
-		geoname_id, latitude, longitude,accuracy_radius, country_iso_code as country_iso, \
-		subdivision_1_iso_code as region_iso, subdivision_1_name as region_name, city_name FROM ip_location_temp"
+		geoname_id, latitude, longitude,accuracy_radius, lower(country_iso_code) as country_iso, \
+		lower(subdivision_1_iso_code) as region_iso, subdivision_1_name as region_name, city_name FROM ip_location_temp"
 	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS ip_location_temp"
 	touch $@
 # Table Transformations
@@ -121,7 +121,7 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	sqlite3 zeit-ort.db "CREATE TABLE flat_holidays AS SELECT d.id, d.name, d.country_id as country_iso, d.country_name, d.date_iso,  \
 	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, lower(c.states) as region_iso \
 	   FROM holidays d LEFT JOIN holiday_regions c USING(id) UNION ALL \
-	   SELECT d.id, d.name, d.country_id as country_iso, d.country_name, d.date_iso, \
+	   SELECT d.id, d.name, lower(d.country_id) as country_iso, d.country_name, d.date_iso, \
 	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, lower(c.states) as region_iso \
 	   FROM holiday_regions c LEFT JOIN holidays d USING(id) WHERE d.id IS NULL; "
 	touch $@
