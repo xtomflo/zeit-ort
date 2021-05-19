@@ -38,9 +38,20 @@ def get_ip_location(ip_input):
     if location is not None:
    		return jsonify(location)
 
-@app.route("/api/get_holidays/<string:date>")
-def get_holidays(date):
-	something = 0
+# Get holidays for next 7 days
+@app.route("/api/get_holidays/")
+def get_holidays():
+	# Connect to the database
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days')")
+
+    result = cursor.fetchall()
+
+    if result is not None:
+    	return jsonify(result)
+
 
 @app.route("/test")
 def get_test():
