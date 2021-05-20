@@ -58,7 +58,7 @@ data/cell_towers.csv.gz:
 	wget -O data/cell_towers_temp.csv.gz "https://opencellid.org/ocid/downloads?token=$(OPENCELL_KEY)&type=full&file=cell_towers.csv.gz" > $@
 # Unzip the CSV file
 data/cell_towers.csv: data/cell_towers.csv.gz
-	gzip data/cell_towers.csv.gz 
+	gzip -dk data/cell_towers.csv.gz 
 # Filter for used information - radio, lat, long
 data/cell_towers_shrunk.csv: data/cell_towers.csv
 	cut --complement -f2-6,9-14 -d, data/cell_towers.csv > $@
