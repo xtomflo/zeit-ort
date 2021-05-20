@@ -122,7 +122,7 @@ def get_ip_density():
     # Convert results to a dictionary
     location =dict(country_iso=ip_result[0], region_iso=ip_result[1], region_name=ip_result[2], city_name=ip_result[3], latitude=ip_result[4], longitude=ip_result[5])
 
-    cursor = conn.execute("SELECT density FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)"), (location['latitude'],location['longitude'])
+    cursor = conn.execute("SELECT density FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)"),(location['latitude'],location['longitude'])
 
     density_result = cursor.fetchall()
     print(density_result)
