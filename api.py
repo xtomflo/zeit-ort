@@ -100,6 +100,39 @@ def get_ip_holidays():
     if result is not None:
     	return jsonify(result)
 
+@app.route("/api/get_ip_density/")
+def get_ip_density():
+    # Get IP From the request
+    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
+    ip_input = request.args.get('ip',None)
+    # Connect to the database
+    conn = db_connection()
+    cursor = conn.cursor()
+
+    # Get the IP address from input
+    ip_addr = ip_address(ip_input)
+    # Convert IP address to INT
+    ip_addr = int(ip_addr)
+    # Get a single location matching the IP address
+    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
+    # Read the result
+    ip_result = cursor.fetchone()
+    print(ip_result)
+    # Convert results to a dictionary
+    location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3], latitude=result[4], longitude=result[5])
+
+    cursor = conn.execute("SELECT density FROM opencell__density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)"), (location['latitude'],location['longitude'])
+
+    density_result = cursor.fetchall()
+    print(density_result)
+
+    result = ip_result + density_result
+
+    if result is not None:
+        return jsonify(result)
+
+
 @app.route("/test")
 def get_test():
 	return "Auto Deployment is working!? Yes it is! (with Debug mode)"
