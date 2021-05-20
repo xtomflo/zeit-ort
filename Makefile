@@ -71,7 +71,6 @@ data/cell_towers_shrunk.csv: data/cell_towers.csv
 data/GeoLite.zip:
 	wget -O data/GeoLite.zip "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City-CSV&license_key=$(GEOLITE_KEY)&suffix=zip"
 	unzip data/GeoLite.zip -d data/
-
 # Transform IP Ranges 
 data/ip_geoname.csv: data/GeoLite.zip
 	cp data/GeoLite2-City*/GeoLite2-City-Blocks-IPv4.csv data/
@@ -100,7 +99,7 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 # Loading Data into Tables
 .load_opencell: create_opencell_table
 	echo "Loading OpenCell"
-	sqlite3 zeit-ort.db -cmd ".mode csv" ".import /data/cell_towers_shrunk.csv opencell"
+	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/cell_towers_shrunk.csv opencell"
 	touch $@
 .load_holidays: create_holidays_table 
 	echo "Loading holidays"
