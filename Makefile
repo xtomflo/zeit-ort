@@ -55,9 +55,14 @@ data/holidayRegions.csv: data/holidaysT.json
 # ---------------------------------------------------------------
 # Download OpenCellData
 data/cell_towers.csv.gz:
-	wget -O data/cell_towers.csv.gz "https://opencellid.org/ocid/downloads?token=$(OPENCELL_KEY)&type=full&file=cell_towers.csv.gz" > $@
-# Extract the CSV file
+	wget -O data/cell_towers_temp.csv.gz "https://opencellid.org/ocid/downloads?token=$(OPENCELL_KEY)&type=full&file=cell_towers.csv.gz" > $@
+# Unzip the CSV file
 data/cell_towers.csv: data/cell_towers.csv.gz
+	gzip data/cell_towers.csv.gz 
+# Filter for used information - radio, lat, long
+data/cell_towers_shrunk.csv: data/cell_towers.csv
+	cut --complement -f2-6,9-14 -d, data/cell_towers.csv > $@
+	rm data/cell_towers.csv
 
 
 # IP to Location Data
@@ -87,7 +92,7 @@ create_holidays_table: zeit-ort.db data/holidays.csv
 	sqlite3 zeit-ort.db < sql/create_holidays.sql 
 create_holiday_regions_table: zeit-ort.db data/holidayRegions.csv
 	sqlite3 zeit-ort.db < sql/create_holiday_regions.sql 
-create_opencell_table: zeit-ort.db data/cell_towers.csv
+create_opencell_table: zeit-ort.db data/cell_towers_shrunk.csv
 	sqlite3 zeit-ort.db < sql/opencell.sql
 create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	sqlite3 zeit-ort.db < sql/ip_locations.sql
@@ -95,7 +100,7 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 # Loading Data into Tables
 .load_opencell: create_opencell_table
 	echo "Loading OpenCell"
-	sqlite3 zeit-ort.db -cmd ".mode csv" ".import ../cell_towers.csv/cell_towers.csv opencell"
+	sqlite3 zeit-ort.db -cmd ".mode csv" ".import /data/cell_towers_shrunk.csv opencell"
 	touch $@
 .load_holidays: create_holidays_table 
 	echo "Loading holidays"
@@ -114,6 +119,8 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 		lower(subdivision_1_iso_code) as region_iso, subdivision_1_name as region_name, city_name FROM ip_location_temp"
 	sqlite3 zeit-ort.db "DROP TABLE IF EXISTS ip_location_temp"
 	touch $@
+
+
 # Table Transformations
 # Merge and flatten holidays tables for easier querying.  Using double LEFT JOIN as a workaround for OUTER JOIN not being supported by SQLITE
 .load_flat_holidays: .load_holiday_regions .load_holidays

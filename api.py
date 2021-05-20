@@ -45,7 +45,7 @@ def get_holidays():
     conn = db_connection()
     cursor = conn.cursor()
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days')")
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+? days')"),(period,)
 
     result = cursor.fetchall()
 
@@ -65,9 +65,17 @@ def get_country_holidays(country):
     if result is not None:
     	return jsonify(result)
 
-@app.route("/api/get_ip_holidays/<string:ip_input>")
-def get_ip_holidays(ip_input):
-	# Connect to the database
+@app.route("/api/get_ip_holiday/")
+def get_ip_holidays():
+    # Get IP From the request
+    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
+    ip_input = request.args.get('ip',None)
+    # Get the period from the request & convert to string for SQL
+    period   = request.args.get('period', 7)
+    #---------------------------------------------------------- ADD LIMIT OF DAYS TO BE QUERIED
+    period   = "+{} days".format(period)
+
+    # Connect to the database
     conn = db_connection()
     cursor = conn.cursor()
 
@@ -80,11 +88,12 @@ def get_ip_holidays(ip_input):
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
     # Read the result
     result = cursor.fetchone()
-    
+    # Convert results to a dictionary
     location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
     print(location)
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now','+7 days') AND country_iso=? AND (all_states=1 OR region_iso=?)",(location['country_iso'],location['region_iso']))
+    # Query holidays in the upcoming X days for Y country or Z region
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
 
     result = cursor.fetchall()
 
