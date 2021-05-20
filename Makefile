@@ -80,7 +80,7 @@ data/ip_location.csv: data/ip_geoname.csv
 	cp data/GeoLite2-City*/GeoLite2-City-Locations-en.csv data/
 	python3 python/geo_location.py 
 
-# Database & Loading
+# Database
 # ---------------------------------------------------------------
 # Create database
 zeit-ort.db:
@@ -96,7 +96,9 @@ create_opencell_table: zeit-ort.db data/cell_towers_shrunk.csv
 create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	sqlite3 zeit-ort.db < sql/ip_locations.sql
 
-# Loading Data into Tables
+# Data Loading
+# ---------------------------------------------------------------
+# Load OpenCell Data
 .load_opencell: create_opencell_table
 	echo "Loading OpenCell"
 	sqlite3 zeit-ort.db -cmd ".mode csv" ".import data/cell_towers_shrunk.csv opencell"
@@ -121,6 +123,7 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 
 
 # Table Transformations
+# ---------------------------------------------------------------
 # Merge and flatten holidays tables for easier querying.  Using double LEFT JOIN as a workaround for OUTER JOIN not being supported by SQLITE
 .load_flat_holidays: .load_holiday_regions .load_holidays
 	echo "Flattening holidays table"
@@ -130,6 +133,12 @@ create_ip_locations_table: zeit-ort.db data/ip_location.csv
 	   SELECT d.id, d.name, lower(d.country_id) as country_iso, d.country_name, d.date_iso, \
 	   CASE d.states WHEN 'All' THEN 1 ELSE 0 END all_states, lower(c.states) as region_iso \
 	   FROM holiday_regions c LEFT JOIN holidays d USING(id) WHERE d.id IS NULL; "
+	touch $@
+# Aggregate Opencell Data to get density per location
+.transform_opencell: .load_opencell
+	echo "Aggregating Opencell for density"
+	sqlite3 zeit-ort.db "CREATE TABLE opencell_density AS SELECT ROUND(latitude,1) as latitude, ROUND(longitude,1) as longitude, count(*) as density \
+	FROM opencell GROUP BY 1,2;"
 	touch $@
 
 nuke:
