@@ -1,4 +1,5 @@
 ipaddress
+requests~=2.25.1
 pandas~=1.2.3
 Flask~=1.1.2
 Flask-Selfdoc~=1.2.3
