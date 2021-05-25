@@ -2,12 +2,13 @@ import unittest
 import requests
 import api
 import pytest
+import python.config as config
 
 def addTwoNumbers(a,b):
 	return a + b
 
 class ApiTest(unittest.TestCase):
-	API_URL = "http://127.0.0.1:5051/api"
+	API_URL =  "http://35.234.75.114:5000/api" if config.PROD_MODE == 1 else "http://127.0.0.1:5051/api"
 	GET_IP_LOCATION_URL = "{}/ip_location".format(API_URL)
 	GET_HOLIDAYS_URL = "{}/get_holidays".format(API_URL)
 	GET_COUNTRY_HOLIDAYS_URL = "{}/get_country_holidays".format(API_URL)
@@ -34,6 +35,7 @@ class ApiTest(unittest.TestCase):
 		
 	def test_holidays(self):
 		r = requests.get(ApiTest.GET_HOLIDAYS_URL)
+		print(ApiTest.GET_HOLIDAYS_URL)
 		self.assertEqual(r.status_code, 200)
 
 	def test_country_holidays(self):
