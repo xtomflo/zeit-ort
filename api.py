@@ -17,8 +17,7 @@ def db_connection():
         print(e)
 
     conn.set_trace_callback(print)
-    return conn
-
+    return conn, conn.cursor()
 
 # Get Location from IP Address
 @app.route("/api/ip_location")
@@ -29,15 +28,13 @@ def get_ip_location():
     #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
 
-	# Connect to the database
-    conn = db_connection()
-    cursor = conn.cursor()
+    # Connect to the database
+    conn, cursor = db_connection()
 
-    # Get the IP address from input
-    ip_addr = ip_address(ip_input)
     # Convert IP address to INT
-    ip_addr = int(ip_addr)
-   	# Get a single location matching the IP address
+    ip_addr = int(ip_address(ip_input))
+
+    # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
     # Read the result
@@ -47,7 +44,7 @@ def get_ip_location():
     print(location)
 
     if location is not None:
-   		return jsonify(location)
+        return jsonify(location)
 
 # Get holidays for next 7 days
 @app.route("/api/get_holidays")
@@ -57,19 +54,19 @@ def get_holidays():
     Get global Holidays for the given data and period 
     """
     date   = request.args.get('date', None)
-    period = request.args.get('period', 7)
+    period   = request.args.get('period', 7)
+
     period = "+{} days".format(period)
 
-	# Connect to the database
-    conn   = db_connection()
-    cursor = conn.cursor()
+    # Connect to the database
+    conn, cursor  = db_connection()
 
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?)",(date,date,period))
 
     result = cursor.fetchall()
 
     if result is not None:
-    	return jsonify(result)
+        return jsonify(result)
 
 @app.route("/api/get_country_holidays")
 @auto.doc()
@@ -85,12 +82,11 @@ def get_country_holidays():
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
 
-    #---------------------------------------------------------- ADD LIMIT OF DAYS TO BE QUERIED
+    
     period   = "+{} days".format(period)
 
     # Connect to the database
-    conn = db_connection()
-    cursor = conn.cursor()
+    conn, cursor = db_connection()
 
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND (country_iso=? OR region_iso=?)",(date,date,period,country,region))
 
@@ -112,17 +108,17 @@ def get_ip_holidays():
     ip_input = request.args.get('ip',None)
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
-    #---------------------------------------------------------- ADD LIMIT OF DAYS TO BE QUERIED
     period   = "+{} days".format(period)
 
     # Connect to the database
-    conn = db_connection()
-    cursor = conn.cursor()
+    conn, cursor = db_connection()
 
-    # Get the IP address from input
-    ip_addr = ip_address(ip_input)
-    # Convert IP address to INT
-    ip_addr = int(ip_addr)
+    try: 
+        # Convert the IP address to Int
+        ip_addr = int(ip_address(ip_input))
+    except Exception as err:
+        print("OS error: {0}".format(err))
+        
    	# Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
@@ -138,7 +134,7 @@ def get_ip_holidays():
     result = cursor.fetchall()
 
     if result is not None:
-    	return jsonify(result)
+        return jsonify(result)
 
 @app.route("/api/get_ip_density")
 @auto.doc()
@@ -150,13 +146,11 @@ def get_ip_density():
     #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
     # Connect to the database
-    conn = db_connection()
-    cursor = conn.cursor()
+    conn, cursor = db_connection()
 
-    # Get the IP address from input
-    ip_addr = ip_address(ip_input)
-    # Convert IP address to INT
-    ip_addr = int(ip_addr)
+    # Convert the IP address to Int
+    ip_addr = int(ip_address(ip_input))
+
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
@@ -193,22 +187,22 @@ def get_all():
     # Get IP From the request
     #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
+
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
-    #---------------------------------------------------------- ADD LIMIT OF DAYS TO BE QUERIED
     period   = "+{} days".format(period)
 
-    # Connect to the database
-    conn = db_connection()
-    cursor = conn.cursor()
+    # Convert the IP address to Int
+    ip_addr = int(ip_address(ip_input))
 
-    # Get the IP address from input
-    ip_addr = ip_address(ip_input)
-    # Convert IP address to INT
-    ip_addr = int(ip_addr)
+    # Connect to the database
+    conn, cursor = db_connection()
+
+
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
+
     # Read the result
     ip_result = list(cursor.fetchone())
     ip_keys = [description[0] for description in cursor.description]
