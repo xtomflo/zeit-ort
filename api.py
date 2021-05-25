@@ -249,10 +249,6 @@ def documentation():
 def get_test():
 	return "Auto Deployment is working!? Yes it is! (with Debug mode)"
 
-@app.route("/api/json/ip_location")
-def get_json_ip_location(ip_input):
-	json_data = flask.request.json
-
 @app.route('/update_server', methods=['POST'])
 def webhook():
 	# Read request
