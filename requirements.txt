@@ -1,5 +1,8 @@
 ipaddress
-pandas
-Flask
+pandas~=1.2.3
+Flask~=1.1.2
+Flask-Selfdoc~=1.2.3
+jq~=1.1.2
 gunicorn
-python-git
+GitPython~=3.1.4
+pytest~=4.6.9
