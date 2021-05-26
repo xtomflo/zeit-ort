@@ -4,7 +4,8 @@ from ipaddress import ip_address
 import json
 import sqlite3
 import git
-
+import python.config as config
+import requests
 
 app = Flask(__name__)
 auto = Autodoc(app)
@@ -19,29 +20,85 @@ def db_connection():
     conn.set_trace_callback(print)
     return conn, conn.cursor()
 
-# Get Location from IP Address
-@app.route("/api/ip_location")
+def get_sql_result(cursor, count = 'one'):
+
+    if(count == 'one'):
+        result = list(cursor.fetchone())
+        keys = [description[0] for description in cursor.description]
+    elif(count == 'all'):
+        # ------- to be fixed
+        result = cursor.fetchall()
+        keys = [description[0] for description in cursor.description]
+
+    return result, keys
+
+# Fire Request for Weather
+def get_weather(params):
+
+    payload = {'appid': config.OPENWEATHER_KEY, 'lat': params['latitude'], 'lon': params['longitude'], 'units':'metric', 'exclude' :'current,minutely,hourly,alerts'}
+    r = requests.get("https://api.openweathermap.org/data/2.5/onecall",params=payload)
+    
+    return r.json()
+
+# Extract key weather info
+def clean_weather(weather_json):
+    print('hi')
+
+
+@app.route("/api/ip_weather")
 @auto.doc()
-def get_ip_location():
-    """ Get Location for the given IP Address """
+def get_ip_weather():
+    
     # Get IP From the request
-    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
+
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))
 
     # Connect to the database
     conn, cursor = db_connection()
 
-    # Convert IP address to INT
-    ip_addr = int(ip_address(ip_input))
+    # Get a single location matching the IP address
+    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+
+    # Read the result
+    ip_results, ip_keys = get_sql_result(cursor)
+    # Convert results to a dictionary
+    location =dict(zip(ip_keys,ip_results))
+
+    weather = get_weather(location)
+
+    return weather
+
+
+@app.route("/api/ip_location")
+@auto.doc()
+def get_ip_location():
+    """ Get Location for the given IP Address """
+
+    # Get IP From the request
+    ip_input = request.args.get('ip',None)
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))
+
+    # Connect to the database
+    conn, cursor = db_connection()
 
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
-    # Read the result
-    result = cursor.fetchone()
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
     
-    location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
-    print(location)
+    # Read the result
+    ip_results, ip_keys = get_sql_result(cursor)
+    # Convert results to a dictionary
+    location =dict(zip(ip_keys,ip_results))
 
     if location is not None:
         return jsonify(location)
@@ -55,7 +112,6 @@ def get_holidays():
     """
     date   = request.args.get('date', None)
     period   = request.args.get('period', 7)
-
     period = "+{} days".format(period)
 
     # Connect to the database
@@ -74,9 +130,7 @@ def get_country_holidays():
     """
     Get holidays per country or country region
     """ 
-
     date = request.args.get('date', 'now')
-
     country  = request.args.get('country',None)
     region   = request.args.get('region',None)
     # Get the period from the request & convert to string for SQL
@@ -104,32 +158,32 @@ def get_ip_holidays():
     Get holidays per given IP address
     """
     # Get IP from the request
-    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))    
+
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
     period   = "+{} days".format(period)
 
     # Connect to the database
     conn, cursor = db_connection()
-
-    try: 
-        # Convert the IP address to Int
-        ip_addr = int(ip_address(ip_input))
-    except Exception as err:
-        print("OS error: {0}".format(err))
-        
+    
    	# Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+    
     # Read the result
-    result = cursor.fetchone()
+    ip_results, ip_keys = get_sql_result(cursor)
     # Convert results to a dictionary
-    location =dict(country_iso=result[0], region_iso=result[1], region_name=result[2], city_name=result[3])
-    print(location)
+    location =dict(zip(ip_keys,ip_results))
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) \
+        AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
 
     result = cursor.fetchall()
 
@@ -143,40 +197,35 @@ def get_ip_density():
     Get location density score for given IP address
     """
     # Get IP From the request
-    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))  
+
     # Connect to the database
     conn, cursor = db_connection()
 
-    # Convert the IP address to Int
-    ip_addr = int(ip_address(ip_input))
-
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
-    # Read the result
-    ip_result = list(cursor.fetchone())
-    ip_keys = [description[0] for description in cursor.description]
-
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+    
+    # Read the  IP query result
+    ip_results, ip_keys = get_sql_result(cursor)
     # Convert results to a dictionary
-    location =dict(country_iso=ip_result[0], region_iso=ip_result[1], region_name=ip_result[2], city_name=ip_result[3], latitude=ip_result[4], longitude=ip_result[5])
-
+    location =dict(zip(ip_keys,ip_results))
+    
     cursor = conn.execute("SELECT density FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
 
-    density_result = list(cursor.fetchone())
-    density_keys = [description[0] for description in cursor.description]
+    # Read the Density query result
+    density_results, density_keys = get_sql_result(cursor)
     
-    result,keys = ip_result + density_result,ip_keys + density_keys
+    results, keys = ip_results + density_results, ip_keys + density_keys
+    final_result = dict(zip(keys,results))
 
-    final_result = zip(keys,result)
-    dict_result = dict(final_result)
-
-    print(dict_result)
-    for name, val in final_result:
-        print(name, val)
-
-    if result is not None:
-        return jsonify(dict_result)
+    if results is not None:
+        return jsonify(final_result)
 
 @app.route("/api/get_all")
 @auto.doc()
@@ -185,55 +234,45 @@ def get_all():
     Get Location, holidays and density score for a given IP address
     """
     # Get IP From the request
-    #---------------------------------------------------------- ADD CHECKING VALIDITY OF THE IP ADDRESS
     ip_input = request.args.get('ip',None)
-
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))  
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
     period   = "+{} days".format(period)
 
-    # Convert the IP address to Int
-    ip_addr = int(ip_address(ip_input))
-
     # Connect to the database
     conn, cursor = db_connection()
 
-
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_addr,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
 
     # Read the result
-    ip_result = list(cursor.fetchone())
-    ip_keys = [description[0] for description in cursor.description]
+    ip_results, ip_keys = get_sql_result(cursor)
 
     # Convert results to a dictionary
-    location =dict(country_iso=ip_result[0], region_iso=ip_result[1], region_name=ip_result[2], city_name=ip_result[3], latitude=ip_result[4], longitude=ip_result[5])
+    location = dict(zip(ip_keys,ip_results))
 
     # Query for density score
     cursor = conn.execute("SELECT density as density_score FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
 
-    density_result = list(cursor.fetchone())
-    density_keys = [description[0] for description in cursor.description]
+    density_results, density_keys = get_sql_result(cursor)
 
     # Query holidays in the upcoming X days for Y country or Z region
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
 
-    holiday_result = cursor.fetchall() #     holiday_result = list(cursor.fetchone())
-    print("Holidays: ",holiday_result)
-    holiday_keys = [description[0] for description in cursor.description]
+    holiday_results, holiday_keys = get_sql_result(cursor,'all')
 
-    result,keys = ip_result + density_result + holiday_result,ip_keys + density_keys + holiday_keys
+    result,keys = ip_results + density_results + holiday_results,ip_keys + density_keys + holiday_keys
 
-    final_result = zip(keys,result)
-    dict_result = dict(final_result)
-
-    print(dict_result)
-    for name, val in final_result:
-        print(name, val)
+    final_result = dict(zip(keys,result))
 
     if result is not None:
-        return jsonify(dict_result)
+        return jsonify(final_result)
 
 @app.route('/documentation')
 def documentation():

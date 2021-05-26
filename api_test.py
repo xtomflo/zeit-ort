@@ -4,12 +4,13 @@ import pytest
 import python.config as config
 
 class ApiTest(unittest.TestCase):
-    API_URL =  "http://35.234.75.114:5000/api" if config.PROD_MODE == 1 else "http://127.0.0.1:5051/api"
+    API_URL =  "http://35.234.75.114:5000/api" if config.PROD_MODE == 0 else "http://127.0.0.1:5000/api"
     GET_IP_LOCATION_URL = "{}/ip_location".format(API_URL)
     GET_HOLIDAYS_URL = "{}/get_holidays".format(API_URL)
     GET_COUNTRY_HOLIDAYS_URL = "{}/get_country_holidays".format(API_URL)
     GET_IP_HOLIDAYS_URL = "{}/get_ip_holidays".format(API_URL)
     GET_IP_DENSITY_URL = "{}/get_ip_density".format(API_URL)
+    GET_ALL_URL = "{}/get_all".format(API_URL)
 
     def test_ip_location(self):
         r = requests.get(ApiTest.GET_IP_LOCATION_URL, params={'ip':'178.62.37.124'})
@@ -35,6 +36,10 @@ class ApiTest(unittest.TestCase):
 
     def test_ip_density(self):
         r = requests.get(ApiTest.GET_IP_DENSITY_URL, params={'ip':'178.62.37.124'})
+        self.assertEqual(r.status_code,200)
+
+    def test_all(self):
+        r = requests.get(ApiTest.GET_ALL_URL, params={'ip':'178.62.37.124'})
         self.assertEqual(r.status_code,200)
 
 #if __name__=='__main__':
