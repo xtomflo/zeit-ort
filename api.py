@@ -48,7 +48,7 @@ def clean_weather(weather_json):
 @app.route("/api/ip_weather")
 @auto.doc()
 def get_ip_weather():
-    
+
     # Get IP From the request
     ip_input = request.args.get('ip',None)
 
@@ -110,7 +110,7 @@ def get_holidays():
     """ 
     Get global Holidays for the given data and period 
     """
-    date   = request.args.get('date', None)
+    date   = request.args.get('date', None)     # ---- validate date format
     period   = request.args.get('period', 7)
     period = "+{} days".format(period)
 
@@ -124,13 +124,52 @@ def get_holidays():
     if result is not None:
         return jsonify(result)
 
+@app.route("/api/is_holiday")
+@auto.doc()
+def is_holiday():
+    """
+    Check whether it is a holiday is given location
+    """
+    # Get Date
+    date   = request.args.get('date', None)  
+    # Get IP from the request
+    ip_input = request.args.get('ip',None)
+    try: 
+        # Convert the IP address to Int
+        ip_input = int(ip_address(ip_input))
+    except Exception as e:
+        return ("Input error: {0}".format(e))  
+
+    # Connect to the database
+    conn, cursor = db_connection()
+    
+    # Get a single location matching the IP address
+    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+    
+    # Read the result
+    ip_results, ip_keys = get_sql_result(cursor)
+    # Convert results to a dictionary
+    location =dict(zip(ip_keys,ip_results))
+
+    # Query holidays in the upcoming X days for Y country or Z region
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
+        AND country_iso=? AND (all_states=1 OR region_iso=?)",(date,date,period,location['country_iso'],location['region_iso']))
+
+    result = cursor.fetchone()
+
+    print(result)
+    
+    if result is not None:
+        return jsonify(result)
+
 @app.route("/api/get_country_holidays")
 @auto.doc()
 def get_country_holidays():
     """
     Get holidays per country or country region
     """ 
-    date = request.args.get('date', 'now')
+    date = request.args.get('date', 'now')       # ---- validate date format
     country  = request.args.get('country',None)
     region   = request.args.get('region',None)
     # Get the period from the request & convert to string for SQL
@@ -142,12 +181,12 @@ def get_country_holidays():
     # Connect to the database
     conn, cursor = db_connection()
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND (country_iso=? OR region_iso=?)",(date,date,period,country,region))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
+     AND (country_iso=? OR region_iso=?)",(date,date,period,country,region))
 
     result = cursor.fetchall()
 
     #---------------------------------------------------------- ADD CHECK FOR NO HOLIDAYS 
-    # result = ""
     if result is not None:
     	return jsonify(result)
 
@@ -157,6 +196,7 @@ def get_ip_holidays():
     """ 
     Get holidays per given IP address
     """
+    date = request.args.get('date', 'now')
     # Get IP from the request
     ip_input = request.args.get('ip',None)
     try: 
@@ -182,8 +222,8 @@ def get_ip_holidays():
     location =dict(zip(ip_keys,ip_results))
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) \
-        AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
+        AND country_iso=? AND (all_states=1 OR region_iso=?)",(date,date,period,location['country_iso'],location['region_iso']))
 
     result = cursor.fetchall()
 
@@ -233,6 +273,8 @@ def get_all():
     """
     Get Location, holidays and density score for a given IP address
     """
+    # Get Date
+    date = request.args.get('date', 'now')
     # Get IP From the request
     ip_input = request.args.get('ip',None)
     try: 
@@ -258,12 +300,14 @@ def get_all():
     location = dict(zip(ip_keys,ip_results))
 
     # Query for density score
-    cursor = conn.execute("SELECT density as density_score FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
+    cursor = conn.execute("SELECT density as density_score FROM opencell_density WHERE latitude = ROUND(?,1) \
+     AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
 
     density_results, density_keys = get_sql_result(cursor)
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date('now') AND date('now',?) AND country_iso=? AND (all_states=1 OR region_iso=?)",(period,location['country_iso'],location['region_iso']))
+    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND \
+     country_iso=? AND (all_states=1 OR region_iso=?)",(date,date, period,location['country_iso'],location['region_iso']))
 
     holiday_results, holiday_keys = get_sql_result(cursor,'all')
 
