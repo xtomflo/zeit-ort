@@ -94,7 +94,7 @@ def is_holiday():
     ip_input = utils.validate_ip(ip_input)  
 
     # Get the period from the request & convert to string for SQL
-    period   = request.args.get('period', 7)
+    period   = request.args.get('period', 0)
     period   = "+{} days".format(period)
 
     # Connect to the database

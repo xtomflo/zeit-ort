@@ -31,14 +31,17 @@ def get_ip_weather(ip: str):
     location = dict(zip(ip_keys,ip_results))
 
     weather = utils.get_weather(location)
-    #print(weather)
     weather_json = json.loads(weather)
+
+    #weather = {}
 
     for day in weather_json['daily']:
         #print(day)
         #print("Easy", day['weather'], day['temp'])
         print("Hard", day['weather'][0]['description'], day['temp']['day'])
-
+        weather = {'description': day['weather'][0]['description'], 'temperature':day['temp']['day']}
+        print(weather)
+        break
     return weather
 
 
