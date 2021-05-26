@@ -25,10 +25,15 @@ def validate_ip(ip):
 def wrap_period(period):
     return "+{} days".format(period)
 
+def convert(keys,results):
+    return dict(zip(keys,results))
+
 def get_sql_result(cursor, count = 'one'):
 
+    output = cursor.fetchone()
+    print(output)
     if(count == 'one'):
-        result = list(cursor.fetchone())
+        result = list(output) if output is not None else None
         keys = [description[0] for description in cursor.description]
     elif(count == 'all'):
         # ------- to be fixed
@@ -40,11 +45,32 @@ def get_sql_result(cursor, count = 'one'):
 # Fire Request for Weather
 def get_weather(params):
 
-    payload = {'appid': config.OPENWEATHER_KEY, 'lat': params['latitude'], 'lon': params['longitude'], 'units':'metric', 'exclude' :'current,minutely,hourly,alerts'}
+    payload = {'appid': config.OPENWEATHER_KEY, 'lat': params['latitude'], 'lon': params['longitude'],\
+     'units':'metric', 'exclude' :'current,minutely,hourly,alerts'}
     r = requests.get("https://api.openweathermap.org/data/2.5/onecall",params=payload)
     
     return r.text
 
+def get_ip_location(conn, params):
+    return conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;",params)
+
+def get_ip_location_custom(conn,params):
+    return conn.execute("SELECT ? \
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;",params)
+
+def get_global_holidays(conn, params):
+    return conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?)",params)
+
+def get_local_holidays(conn,params):
+    return conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
+        AND country_iso=? AND (all_states=1 OR region_iso=?)",params)
+
+def get_density(conn, params):
+    return conn.execute("SELECT density as density_score FROM opencell_density WHERE \
+        latitude = ROUND(?,1) AND longitude = ROUND(?,1)",params)
+
 # Extract key weather info
 def clean_weather(weather_json):
-    print('hi')
+    cleaned_weather = {'description': weather_json['daily'][0]['weather'][0]['description'],'temperature': weather_json['daily'][0]['temp']['day']}
+    return cleaned_weather

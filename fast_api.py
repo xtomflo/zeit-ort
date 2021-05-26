@@ -22,26 +22,18 @@ def get_ip_weather(ip: str):
     conn, cursor = utils.db_connection()
 
     # Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn, (ip,))
 
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
     # Convert results to a dictionary
-    location = dict(zip(ip_keys,ip_results))
+    location = utils.convert(ip_keys,ip_results)
 
     weather = utils.get_weather(location)
     weather_json = json.loads(weather)
 
-    #weather = {}
-
-    for day in weather_json['daily']:
-        #print(day)
-        #print("Easy", day['weather'], day['temp'])
-        print("Hard", day['weather'][0]['description'], day['temp']['day'])
-        weather = {'description': day['weather'][0]['description'], 'temperature':day['temp']['day']}
-        print(weather)
-        break
+    weather = utils.clean_weather(weather_json)
+    
     return weather
 
 
@@ -55,22 +47,23 @@ def get_ip_location(ip: str):
     conn, cursor = utils.db_connection()
 
     # Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn, (ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
+
     # Convert results to a dictionary
-    location =dict(zip(ip_keys,ip_results))
+    location = utils.convert(ip_keys,ip_results)
 
     if location is not None:
         return location
 
+   
 # Get holidays for next 7 days
-@app.get("/api/get_holidays")
-def get_holidays(date: date = 'now', period: int = 7):
+@app.get("/api/get_global_holidays")
+def get_global_holidays(date: date = 'now', period: int = 7):
     """ 
-    Get global Holidays for the given data and period 
+    Get global Holidays for a period starting on the given date. By default next week.
     """
    
     period = utils.wrap_period(period)
@@ -78,7 +71,7 @@ def get_holidays(date: date = 'now', period: int = 7):
     # Connect to the database
     conn, cursor  = utils.db_connection()
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?)",(date,date,period))
+    cursor = utils.get_global_holidays(conn,(date,date,period))
 
     result = cursor.fetchall()
 
@@ -101,19 +94,16 @@ def is_holiday(ip: str, date: date ='now', period: int = 0):
     conn, cursor = utils.db_connection()
     print("IP ----------------------",ip)
     # Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn,(ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
 
     # Convert results to a dictionary
-    location =dict(zip(ip_keys,ip_results))
-    print(location)
+    location = utils.convert(ip_keys,ip_results)
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
-        AND country_iso=? AND (all_states=1 OR region_iso=?)",(date,date,period,location['country_iso'],location['region_iso']))
+    cursor = utils.get_local_holidays(conn ,(date,date,period,location['country_iso'],location['region_iso']))
 
     result = cursor.fetchone()
 
@@ -123,8 +113,8 @@ def is_holiday(ip: str, date: date ='now', period: int = 0):
     else:
         return "None"
 
-@app.get("/api/get_country_holidays")
-def get_country_holidays(country: str, region: str, date: date ='now', period: int = 7):
+@app.get("/api/get_local_holidays")
+def get_local_holidays(country: str, region: str, date: date ='now', period: int = 7):
     """
     Get holidays per country or country region
     """ 
@@ -135,8 +125,7 @@ def get_country_holidays(country: str, region: str, date: date ='now', period: i
     # Connect to the database
     conn, cursor = utils.db_connection()
 
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
-     AND (country_iso=? OR region_iso=?)",(date,date,period,country,region))
+    cursor = utils.get_local_holidays(conn,(date,date,period,country,region))
 
     result = cursor.fetchall()
 
@@ -157,17 +146,15 @@ def get_ip_holidays(ip: str, date: date ='now', period: int = 7):
     conn, cursor = utils.db_connection()
     
    	# Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn,(ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
     # Convert results to a dictionary
-    location =dict(zip(ip_keys,ip_results))
+    location =utils.convert(ip_keys,ip_results)
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
-        AND country_iso=? AND (all_states=1 OR region_iso=?)",(date,date,period,location['country_iso'],location['region_iso']))
+    cursor = utils.get_local_holidays(conn ,(date,date,period,location['country_iso'],location['region_iso']))
 
     result = cursor.fetchall()
 
@@ -186,15 +173,14 @@ def get_ip_density(ip: str):
     conn, cursor = utils.db_connection()
 
     # Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn, (ip,))
     
     # Read the  IP query result
     ip_results, ip_keys = utils.get_sql_result(cursor)
     # Convert results to a dictionary
-    location =dict(zip(ip_keys,ip_results))
+    location =utils.convert(ip_keys,ip_results)
     
-    cursor = conn.execute("SELECT density FROM opencell_density WHERE latitude = ROUND(?,1) AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
+    cursor = utils.get_density(conn,(location['latitude'],location['longitude']))
 
     # Read the Density query result
     density_results, density_keys = utils.get_sql_result(cursor)
@@ -206,7 +192,7 @@ def get_ip_density(ip: str):
         return final_result
 
 @app.get("/api/get_all")
-def get_all(ip: str, date: date ='now', period: int = 7):
+def get_all(ip: str, date: date ='now', period: int = 0):
     """
     Get Location, holidays and density score for a given IP address
     """
@@ -219,30 +205,38 @@ def get_all(ip: str, date: date ='now', period: int = 7):
     conn, cursor = utils.db_connection()
 
     # Get a single location matching the IP address
-    cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
+    cursor = utils.get_ip_location(conn, (ip,))
 
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
 
     # Convert results to a dictionary
-    location = dict(zip(ip_keys,ip_results))
+    location = utils.convert(ip_keys,ip_results)
+
+    weather = utils.get_weather(location)
+    weather_json = json.loads(weather)
+    weather = utils.clean_weather(weather_json)
+
+    weather_keys, weather_results = list(weather.keys()), list(weather.values())
 
     # Query for density score
-    cursor = conn.execute("SELECT density as density_score FROM opencell_density WHERE latitude = ROUND(?,1) \
-     AND longitude = ROUND(?,1)",(location['latitude'],location['longitude']))
+    cursor = utils.get_density(conn,(location['latitude'],location['longitude']))
 
     density_results, density_keys = utils.get_sql_result(cursor)
 
     # Query holidays in the upcoming X days for Y country or Z region
-    cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND \
-     country_iso=? AND (all_states=1 OR region_iso=?)",(date,date, period,location['country_iso'],location['region_iso']))
+    cursor = utils.get_local_holidays(conn, (date,date, period,location['country_iso'],location['region_iso']))
 
-    holiday_results, holiday_keys = utils.get_sql_result(cursor,'all')
+    #holiday_results, holiday_keys = utils.get_sql_result(cursor,'all')
+    holiday_results, holiday_keys = utils.get_sql_result(cursor)
 
-    result,keys = ip_results + density_results + holiday_results,ip_keys + density_keys + holiday_keys
+    holiday_keys = ['is_holiday']
+    holiday_results = ['true'] if holiday_results is not None else ['false']
 
-    final_result = dict(zip(keys,result))
+    
+    result,keys = ip_results + density_results + holiday_results + weather_results,ip_keys + density_keys + holiday_keys + weather_keys
+
+    final_result = utils.convert(keys,result)
 
     if result is not None:
         return final_result
