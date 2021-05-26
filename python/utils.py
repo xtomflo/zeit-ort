@@ -1,3 +1,7 @@
+from ipaddress import ip_address
+import sqlite3
+import requests
+
 def db_connection():
     conn = None
     try:
