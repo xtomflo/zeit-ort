@@ -1,4 +1,7 @@
-from flask import Flask, request, jsonify, abort
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, Form
+import uvicorn
+
 from flask_selfdoc import Autodoc
 from ipaddress import ip_address
 import json
@@ -7,8 +10,7 @@ import git
 import python.config as config
 import requests
 
-app = Flask(__name__)
-auto = Autodoc(app)
+app = FastAPI()
 
 def db_connection():
     conn = None
@@ -45,8 +47,7 @@ def clean_weather(weather_json):
     print('hi')
 
 
-@app.route("/api/ip_weather")
-@auto.doc()
+@app.get("/api/ip_weather")
 def get_ip_weather():
 
     # Get IP From the request
@@ -75,8 +76,7 @@ def get_ip_weather():
     return weather
 
 
-@app.route("/api/ip_location")
-@auto.doc()
+@app.get("/api/ip_location")
 def get_ip_location():
     """ Get Location for the given IP Address """
 
@@ -104,8 +104,7 @@ def get_ip_location():
         return jsonify(location)
 
 # Get holidays for next 7 days
-@app.route("/api/get_holidays")
-@auto.doc()
+@app.get("/api/get_holidays")
 def get_holidays():
     """ 
     Get global Holidays for the given data and period 
@@ -124,24 +123,19 @@ def get_holidays():
     if result is not None:
         return jsonify(result)
 
-@app.route("/api/is_holiday")
-@auto.doc()
-def is_holiday():
+@app.get("/api/is_holiday", response_class=JSONResponse)
+async def is_holiday(ip: str, date: str ='now', period: int = 7):
+
     """
     Check whether it is a holiday is given location
     """
-    # Get Date
-    date   = request.args.get('date', None)  
-    # Get IP from the request
-    ip_input = request.args.get('ip',None)
     try: 
         # Convert the IP address to Int
-        ip_input = int(ip_address(ip_input))
+        ip_input = int(ip_address(ip))
     except Exception as e:
         return ("Input error: {0}".format(e))  
 
     # Get the period from the request & convert to string for SQL
-    period   = request.args.get('period', 0)
     period   = "+{} days".format(period)
 
     # Connect to the database
@@ -162,15 +156,13 @@ def is_holiday():
 
     result = cursor.fetchone()
 
-    print(result)
 
     if result is not None:
-        return jsonify(result)
+        return result
     else:
-        return jsonify("None")
+        return "None"
 
-@app.route("/api/get_country_holidays")
-@auto.doc()
+@app.get("/api/get_country_holidays")
 def get_country_holidays():
     """
     Get holidays per country or country region
@@ -196,8 +188,7 @@ def get_country_holidays():
     if result is not None:
     	return jsonify(result)
 
-@app.route("/api/get_ip_holidays")
-@auto.doc()
+@app.get("/api/get_ip_holidays")
 def get_ip_holidays():
     """ 
     Get holidays per given IP address
@@ -236,8 +227,7 @@ def get_ip_holidays():
     if result is not None:
         return jsonify(result)
 
-@app.route("/api/get_ip_density")
-@auto.doc()
+@app.get("/api/get_ip_density")
 def get_ip_density():
     """
     Get location density score for given IP address
@@ -273,8 +263,7 @@ def get_ip_density():
     if results is not None:
         return jsonify(final_result)
 
-@app.route("/api/get_all")
-@auto.doc()
+@app.get("/api/get_all")
 def get_all():
     """
     Get Location, holidays and density score for a given IP address
@@ -324,15 +313,15 @@ def get_all():
     if result is not None:
         return jsonify(final_result)
 
-@app.route('/documentation')
-def documentation():
-    return auto.html()
+#@app.get('/documentation')
+#def documentation():
+#    return auto.html()
 
-@app.route("/test")
+@app.get("/test")
 def get_test():
 	return "Auto Deployment is working!? Yes it is! (with Debug mode)"
 
-@app.route('/update_server', methods=['POST'])
+@app.post('/update_server')
 def webhook():
 	# Read request
     x_hub_signature = request.headers.get('X-Hub-Signature')
@@ -352,10 +341,10 @@ def webhook():
         return 'Wrong event type', 400
 
 
-@app.route("/")
+@app.get("/")
 def hello_world():
     return "<p>Hello, Outer  World!</p>"
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == '__main__':
+    uvicorn.run('api:app', host='0.0.0.0', port=8000)
 # Get Holidays for IP Address
