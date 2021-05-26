@@ -256,7 +256,7 @@ def get_all():
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND \
      country_iso=? AND (all_states=1 OR region_iso=?)",(date,date, period,location['country_iso'],location['region_iso']))
 
-    holiday_results, holiday_keys = get_sql_result(cursor,'all')
+    holiday_results, holiday_keys = utils.get_sql_result(cursor,'all')
 
     result,keys = ip_results + density_results + holiday_results,ip_keys + density_keys + holiday_keys
 

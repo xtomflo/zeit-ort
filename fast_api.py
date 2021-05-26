@@ -17,7 +17,7 @@ app = FastAPI()
 @app.get("/api/ip_weather")
 def get_ip_weather(ip: str):
 
-    utils.validate_ip(ip)
+    ip = utils.validate_ip(ip)
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -40,7 +40,7 @@ def get_ip_weather(ip: str):
 def get_ip_location(ip: str):
     """ Get Location for the given IP Address """
 
-    utils.validate_ip(ip)
+    ip = utils.validate_ip(ip)
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -83,22 +83,24 @@ def is_holiday(ip: str, date: date ='now', period: int = 7):
     Check whether it is a holiday is given location
     """
    
-    utils.validate_ip(ip)  
+    ip = utils.validate_ip(ip)  
 
     # Convert period to "+ X days" for SQL query
     period   = utils.wrap_period(period)
 
     # Connect to the database
     conn, cursor = utils.db_connection()
-    
+    print("IP ----------------------",ip)
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
      FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
+
     # Convert results to a dictionary
     location =dict(zip(ip_keys,ip_results))
+    print(location)
 
     # Query holidays in the upcoming X days for Y country or Z region
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) \
@@ -134,12 +136,12 @@ def get_country_holidays(country: str, region: str, date: date ='now', period: i
     	return result
 
 @app.get("/api/get_ip_holidays")
-def get_ip_holidays(ip: str, date: date ='now'):
+def get_ip_holidays(ip: str, date: date ='now', period: int = 7):
     """ 
     Get holidays per given IP address
     """
     # Validate IP address
-    utils.validate_ip(ip)    
+    ip = utils.validate_ip(ip)    
     # Convert period to "+ X days" for SQL query
     period   = utils.wrap_period(period)
     # Connect to the database
@@ -169,7 +171,7 @@ def get_ip_density(ip: str):
     Get location density score for given IP address
     """
     # Validate IP address
-    utils.validate_ip(ip)  
+    ip = utils.validate_ip(ip)  
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -200,7 +202,7 @@ def get_all(ip: str, date: date ='now', period: int = 7):
     Get Location, holidays and density score for a given IP address
     """
 
-    utils.validate_ip(ip)  
+    ip = utils.validate_ip(ip)  
 
     period   = utils.wrap_period(period)
 
@@ -250,5 +252,5 @@ def hello_world():
     return "<p>Hello, Outer  World!</p>"
 
 if __name__ == '__main__':
-    uvicorn.run('fast_api:app', host='0.0.0.0', port=8000)
+    uvicorn.run('fast_api:app', reload=True, host='0.0.0.0', port=8000)
 # Get Holidays for IP Address

@@ -20,13 +20,18 @@ def validate_ip(ip):
     except Exception as e:
         return ("Input error: {0}".format(e))
 
+    return ip_input
+
 def wrap_period(period):
     return "+{} days".format(period)
 
 def get_sql_result(cursor, count = 'one'):
 
+    output = cursor.fetchone()
+    print("------------------------------------", output)
+
     if(count == 'one'):
-        result = list(cursor.fetchone())
+        result = list(output)
         keys = [description[0] for description in cursor.description]
     elif(count == 'all'):
         # ------- to be fixed
