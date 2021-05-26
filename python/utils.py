@@ -31,7 +31,6 @@ def convert(keys,results):
 def get_sql_result(cursor, count = 'one'):
 
     output = cursor.fetchone()
-    print(output)
     if(count == 'one'):
         result = list(output) if output is not None else None
         keys = [description[0] for description in cursor.description]

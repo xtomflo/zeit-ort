@@ -223,7 +223,7 @@ def get_all(ip: str, date: date ='now', period: int = 0):
     cursor = utils.get_density(conn,(location['latitude'],location['longitude']))
 
     density_results, density_keys = utils.get_sql_result(cursor)
-
+    density_results = [0] if density_results is None else density_results
     # Query holidays in the upcoming X days for Y country or Z region
     cursor = utils.get_local_holidays(conn, (date,date, period,location['country_iso'],location['region_iso']))
 
@@ -231,9 +231,10 @@ def get_all(ip: str, date: date ='now', period: int = 0):
     holiday_results, holiday_keys = utils.get_sql_result(cursor)
 
     holiday_keys = ['is_holiday']
-    holiday_results = ['true'] if holiday_results is not None else ['false']
+    holiday_results = [True] if holiday_results is not None else [False]
+ 
+    print('ip_results',ip_results,'density_results',density_results,'holiday_results',holiday_results,'weather_results',weather_results)
 
-    
     result,keys = ip_results + density_results + holiday_results + weather_results,ip_keys + density_keys + holiday_keys + weather_keys
 
     final_result = utils.convert(keys,result)
