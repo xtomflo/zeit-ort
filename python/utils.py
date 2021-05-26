@@ -27,11 +27,8 @@ def wrap_period(period):
 
 def get_sql_result(cursor, count = 'one'):
 
-    output = cursor.fetchone()
-    print("------------------------------------", output)
-
     if(count == 'one'):
-        result = list(output)
+        result = list(cursor.fetchone())
         keys = [description[0] for description in cursor.description]
     elif(count == 'all'):
         # ------- to be fixed
@@ -46,7 +43,7 @@ def get_weather(params):
     payload = {'appid': config.OPENWEATHER_KEY, 'lat': params['latitude'], 'lon': params['longitude'], 'units':'metric', 'exclude' :'current,minutely,hourly,alerts'}
     r = requests.get("https://api.openweathermap.org/data/2.5/onecall",params=payload)
     
-    return r.json()
+    return r.text
 
 # Extract key weather info
 def clean_weather(weather_json):

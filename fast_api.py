@@ -1,10 +1,10 @@
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Form
-import uvicorn
 from flask_selfdoc import Autodoc
 from ipaddress import ip_address
 import python.config as config
 import python.utils as utils
+import uvicorn
 import json
 import sqlite3
 import git
@@ -12,7 +12,6 @@ import requests
 from datetime import date
 
 app = FastAPI()
-
 
 @app.get("/api/ip_weather")
 def get_ip_weather(ip: str):
@@ -29,9 +28,16 @@ def get_ip_weather(ip: str):
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
     # Convert results to a dictionary
-    location =dict(zip(ip_keys,ip_results))
+    location = dict(zip(ip_keys,ip_results))
 
     weather = utils.get_weather(location)
+    #print(weather)
+    weather_json = json.loads(weather)
+
+    for day in weather_json['daily']:
+        #print(day)
+        #print("Easy", day['weather'], day['temp'])
+        print("Hard", day['weather'][0]['description'], day['temp']['day'])
 
     return weather
 
@@ -77,7 +83,7 @@ def get_holidays(date: date = 'now', period: int = 7):
         return result
 
 @app.get("/api/is_holiday", response_class=JSONResponse)
-def is_holiday(ip: str, date: date ='now', period: int = 7):
+def is_holiday(ip: str, date: date ='now', period: int = 0):
 
     """
     Check whether it is a holiday is given location
