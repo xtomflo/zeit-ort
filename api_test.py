@@ -4,7 +4,7 @@ import pytest
 import python.config as config
 
 class ApiTest(unittest.TestCase):
-    API_URL =  "http://35.234.75.114:5000/api" if config.PROD_MODE == 0 else "http://127.0.0.1:5000/api"
+    API_URL =  "http://35.234.75.114:5000/api" if config.PROD_MODE == 1 else "http://127.0.0.1:5000/api"
     GET_IP_LOCATION_URL = "{}/ip_location".format(API_URL)
     GET_HOLIDAYS_URL = "{}/get_holidays".format(API_URL)
     GET_COUNTRY_HOLIDAYS_URL = "{}/get_country_holidays".format(API_URL)
