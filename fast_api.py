@@ -55,7 +55,7 @@ def get_ip_location(ip: str):
     location =dict(zip(ip_keys,ip_results))
 
     if location is not None:
-        return jsonify(location)
+        return location
 
 # Get holidays for next 7 days
 @app.get("/api/get_holidays")
@@ -74,7 +74,7 @@ def get_holidays(date: date = 'now', period: int = 7):
     result = cursor.fetchall()
 
     if result is not None:
-        return jsonify(result)
+        return result
 
 @app.get("/api/is_holiday", response_class=JSONResponse)
 def is_holiday(ip: str, date: date ='now', period: int = 7):
@@ -131,7 +131,7 @@ def get_country_holidays(country: str, region: str, date: date ='now', period: i
 
     #---------------------------------------------------------- ADD CHECK FOR NO HOLIDAYS 
     if result is not None:
-    	return jsonify(result)
+    	return result
 
 @app.get("/api/get_ip_holidays")
 def get_ip_holidays(ip: str, date: date ='now'):
@@ -161,7 +161,7 @@ def get_ip_holidays(ip: str, date: date ='now'):
     result = cursor.fetchall()
 
     if result is not None:
-        return jsonify(result)
+        return result
 
 @app.get("/api/get_ip_density")
 def get_ip_density(ip: str):
@@ -192,7 +192,7 @@ def get_ip_density(ip: str):
     final_result = dict(zip(keys,results))
 
     if results is not None:
-        return jsonify(final_result)
+        return final_result
 
 @app.get("/api/get_all")
 def get_all(ip: str, date: date ='now', period: int = 7):
@@ -227,14 +227,14 @@ def get_all(ip: str, date: date ='now', period: int = 7):
     cursor = conn.execute("SELECT * FROM flat_holidays WHERE date_iso BETWEEN date(?) AND date(?,?) AND \
      country_iso=? AND (all_states=1 OR region_iso=?)",(date,date, period,location['country_iso'],location['region_iso']))
 
-    holiday_results, holiday_keys = get_sql_result(cursor,'all')
+    holiday_results, holiday_keys = utils.get_sql_result(cursor,'all')
 
     result,keys = ip_results + density_results + holiday_results,ip_keys + density_keys + holiday_keys
 
     final_result = dict(zip(keys,result))
 
     if result is not None:
-        return jsonify(final_result)
+        return final_result
 
 #@app.get('/documentation')
 #def documentation():
@@ -243,25 +243,6 @@ def get_all(ip: str, date: date ='now', period: int = 7):
 @app.get("/test")
 def get_test():
 	return "Auto Deployment is working!? Yes it is! (with Debug mode)"
-
-@app.post('/update_server')
-def webhook():
-	# Read request
-    x_hub_signature = request.headers.get('X-Hub-Signature')
-    # Validate key from request
-#    if not is_valid_signature(x_hub_signature, request.data, w_secret):
-#        print('Deploy signature failed: {sig}'.format(sig=x_hub_signature))
-#        abort(418)
-    # Check the request method. Other Checks can be added
-    if request.method == 'POST':
-    	# Local location of the repo
-        repo = git.Repo('../zeit-ort')
-        origin = repo.remotes.origin
-        # Pull the repo to be updated
-        origin.pull()
-        return 'Updated zeit-ort App successfully', 200
-    else:
-        return 'Wrong event type', 400
 
 
 @app.get("/")
