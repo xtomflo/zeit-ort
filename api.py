@@ -17,7 +17,7 @@ def get_ip_weather():
     # Get IP From the request
     ip_input = request.args.get('ip',None)
 
-    utils.validate_ip(ip_input)
+    ip_input = utils.validate_ip(ip_input)
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -43,7 +43,7 @@ def get_ip_location():
 
     # Get IP From the request
     ip_input = request.args.get('ip',None)
-    utils.validate_ip(ip_input)
+    ip_input = utils.validate_ip(ip_input)
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -91,7 +91,7 @@ def is_holiday():
     date   = request.args.get('date', None)  
     # Get IP from the request
     ip_input = request.args.get('ip',None)
-    utils.validate_ip(ip_input)  
+    ip_input = utils.validate_ip(ip_input)  
 
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 0)
@@ -158,7 +158,7 @@ def get_ip_holidays():
     date = request.args.get('date', 'now')
     # Get IP from the request
     ip_input = request.args.get('ip',None)
-    utils.validate_ip(ip_input)    
+    ip_input = utils.validate_ip(ip_input)    
 
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
@@ -193,7 +193,7 @@ def get_ip_density():
     """
     # Get IP From the request
     ip_input = request.args.get('ip',None)
-    utils.validate_ip(ip_input)  
+    ip_input = utils.validate_ip(ip_input)  
 
     # Connect to the database
     conn, cursor = utils.db_connection()
@@ -228,7 +228,7 @@ def get_all():
     date = request.args.get('date', 'now')
     # Get IP From the request
     ip_input = request.args.get('ip',None)
-    utils.validate_ip(ip_input)  
+    ip_input = utils.validate_ip(ip_input)  
     # Get the period from the request & convert to string for SQL
     period   = request.args.get('period', 7)
     period   = "+{} days".format(period)
