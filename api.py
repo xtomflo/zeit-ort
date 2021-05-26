@@ -9,9 +9,6 @@ app = Flask(__name__)
 auto = Autodoc(app)
 
 
-@app.get("/api/is_holiday", response_class=JSONResponse)
-def is_holiday(ip: str, date: str ='now', period: int = 7):
-
 
 @app.route("/api/ip_weather")
 @auto.doc()

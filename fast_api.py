@@ -9,6 +9,7 @@ import json
 import sqlite3
 import git
 import requests
+from datetime import date
 
 app = FastAPI()
 
@@ -23,7 +24,7 @@ def get_ip_weather(ip: str):
 
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
 
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -46,7 +47,7 @@ def get_ip_location(ip: str):
 
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -58,7 +59,7 @@ def get_ip_location(ip: str):
 
 # Get holidays for next 7 days
 @app.get("/api/get_holidays")
-def get_holidays(date: str = 'now', period: int = 7):
+def get_holidays(date: date = 'now', period: int = 7):
     """ 
     Get global Holidays for the given data and period 
     """
@@ -76,7 +77,7 @@ def get_holidays(date: str = 'now', period: int = 7):
         return jsonify(result)
 
 @app.get("/api/is_holiday", response_class=JSONResponse)
-def is_holiday(ip: str, date: str ='now', period: int = 7):
+def is_holiday(ip: str, date: date ='now', period: int = 7):
 
     """
     Check whether it is a holiday is given location
@@ -92,7 +93,7 @@ def is_holiday(ip: str, date: str ='now', period: int = 7):
     
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -112,7 +113,7 @@ def is_holiday(ip: str, date: str ='now', period: int = 7):
         return "None"
 
 @app.get("/api/get_country_holidays")
-def get_country_holidays(date: str ='now', period: int = 7, country: str, region: str):
+def get_country_holidays(country: str, region: str, date: date ='now', period: int = 7):
     """
     Get holidays per country or country region
     """ 
@@ -133,7 +134,7 @@ def get_country_holidays(date: str ='now', period: int = 7, country: str, region
     	return jsonify(result)
 
 @app.get("/api/get_ip_holidays")
-def get_ip_holidays(ip: str, date: str ='now'):
+def get_ip_holidays(ip: str, date: date ='now'):
     """ 
     Get holidays per given IP address
     """
@@ -146,7 +147,7 @@ def get_ip_holidays(ip: str, date: str ='now'):
     
    	# Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
     
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -175,7 +176,7 @@ def get_ip_density(ip: str):
 
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
     
     # Read the  IP query result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -194,7 +195,7 @@ def get_ip_density(ip: str):
         return jsonify(final_result)
 
 @app.get("/api/get_all")
-def get_all(ip: str, date: str ='now', period: int = 7):
+def get_all(ip: str, date: date ='now', period: int = 7):
     """
     Get Location, holidays and density score for a given IP address
     """
@@ -208,7 +209,7 @@ def get_all(ip: str, date: str ='now', period: int = 7):
 
     # Get a single location matching the IP address
     cursor = conn.execute("SELECT country_iso, region_iso, region_name, city_name, latitude, longitude \
-     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip_input,))
+     FROM ip_location WHERE ? BETWEEN ip_range_start AND ip_range_end LIMIT 1;", (ip,))
 
     # Read the result
     ip_results, ip_keys = utils.get_sql_result(cursor)
@@ -268,5 +269,5 @@ def hello_world():
     return "<p>Hello, Outer  World!</p>"
 
 if __name__ == '__main__':
-    uvicorn.run('api:app', host='0.0.0.0', port=8000)
+    uvicorn.run('fast_api:app', host='0.0.0.0', port=8000)
 # Get Holidays for IP Address
