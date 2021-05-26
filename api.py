@@ -140,6 +140,10 @@ def is_holiday():
     except Exception as e:
         return ("Input error: {0}".format(e))  
 
+    # Get the period from the request & convert to string for SQL
+    period   = request.args.get('period', 0)
+    period   = "+{} days".format(period)
+
     # Connect to the database
     conn, cursor = db_connection()
     
@@ -159,9 +163,11 @@ def is_holiday():
     result = cursor.fetchone()
 
     print(result)
-    
+
     if result is not None:
-        return jsonify(result)
+        return "true"
+    else:
+        return "false"
 
 @app.route("/api/get_country_holidays")
 @auto.doc()
