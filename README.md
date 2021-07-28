@@ -13,7 +13,14 @@
 
 
 
-Based on a given IP Address the API returns the location, population density score, current and near weather and current and near public holidays for users location. 
+#### Based on a given IP Address the API returns:
+- the location
+- population density score 
+- current and near weather -
+- current and near public holidays in specific locations.
+
+The API supports these features on the global scale for up to 5 years in the future.
+
 
 ##### Data Sources:
 
@@ -42,4 +49,29 @@ Based on a given IP Address the API returns the location, population density sco
 ### Try it out here
 
 [API Documentation](http://35.234.75.114:8000/docs) 
+
+
+### Example 
+For IP Address: 46.88.58.188 (Berlin)
+
+Request:
+http://35.234.75.114:8000/api/get_all?ip=46.88.58.18&period=0 
+
+Response:
+
+```json
+{
+  "country_iso": "de",
+  "region_iso": "be",
+  "region_name": "Land Berlin",
+  "city_name": "Berlin",
+  "latitude": "52.4972",
+  "longitude": "13.3299",
+  "density_score": 15828,
+  "is_holiday": false,
+  "description": "light rain",
+  "temperature": 25.38
+}
+```
+
 
